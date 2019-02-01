@@ -1,0 +1,268 @@
+---
+title: "Lab 4- BKN 599"
+author: "Nadir Nibras"
+date: "January 31, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Clear, close all
+```{r}
+# clear workspace variables
+rm(list = ls()); 
+# clear window (same as ctrl+L. )
+cat("\014")   
+# close all plots
+graphics.off() 
+```
+
+## Figure 3.16
+
+Generating data
+```{r}
+x1= seq(0,100,1)
+x2= seq(0,100,1)
+
+N= length(x1)
+# Creating empty matrix
+y= matrix(0, nrow = N, ncol = N)
+
+# generating RSS values for different betas
+for (i in 1:N)  {
+  for (j in 1:N)
+    {
+    y[i,j]= 3*x1[i]+2*x2[j]+runif(1,-10,50)
+    }
+  }
+
+persp(x1,x2,y)
+contour(x1,x2,y)
+image(x1,x2,y)
+```
+
+## Figure 3.17
+
+
+Generating data
+```{r}
+# clear workspace variables
+rm(list = ls()); 
+# generate random x values
+x=runif(100,min=-1,max=1)
+x=sort(x)  
+# calculate y based on function + random noise 
+randnoise=rnorm(100,mean=0,sd=0.3)
+y=2+(2*x)+randnoise
+  
+plot(x,y, col= "red")
+abline(2,2)
+
+```
+
+
+k nearest neighbors
+```{r}
+
+# plotting again
+plot(x,y, col= "red")
+abline(2,2)
+
+# knn
+x1= seq(-1,1,0.01)
+y1= integer(length(x1))
+k=9
+
+# for (j in 1:length(x1)){
+#   dummy_x= x
+#   dummy_y= y
+#   neighbors =integer(k)
+#   for (i in 1:k){
+#     min_index= which.min(abs(dummy_x-x1[j]))
+#     neighbors[i]= dummy_y[min_index]
+#     dummy_x= dummy_x[-c(min_index)]
+#     dummy_y= dummy_y[-c(min_index)]
+#   }
+#   y1[j]= mean(neighbors)
+# }
+for (j in 1:length(x1)) {
+  
+  indices <- order(abs(x - x1[j]))[1:k]
+  y1[j] <- mean(y[indices])
+  
+}
+lines(x1,y1)
+
+```
+
+## Figure 3.18
+
+```{r}
+df= data.frame(x,y)
+lm.fit=lm(y~x, df)
+plot(x,y, col="red")
+  
+  abline(2,2,lwd=3,col="black")
+  abline(lm.fit,lwd=3,col="blue",lty=2)
+```
+
+MSE calculations
+```{r}
+MSE_LS= mean(residuals(lm.fit)^2)
+```
+
+Writing KNN algoritghm
+```{r}
+
+# Creating training and test sets
+idxs <- sample(1:nrow(df),as.integer(0.7*nrow(df)))
+traindf <- df[idxs,]
+testdf <- df[-idxs,]
+
+neighbors= 20
+
+# initializing predictions to 0
+testdf$ypred= integer(nrow(testdf))
+
+# initializing more vectors
+k_inverse=integer(neighbors)
+MSE= integer(neighbors)
+
+for (k in 1:neighbors){
+for (i in 1:nrow(testdf)){
+  dummy_x= traindf$x
+  dummy_y= traindf$y
+  
+  neighbors =integer(k) #Initializing neighbors vector with 0s
+  
+  for (j in 1:k){
+    min_index= which.min(abs(dummy_x-testdf$x[i]))
+    neighbors[j]= dummy_y[min_index]
+    dummy_x= dummy_x[-c(min_index)]
+    dummy_y= dummy_y[-c(min_index)]
+  }
+  testdf$ypred[i]= mean(neighbors)
+  }
+k_inverse[k]= 1/k
+MSE[k]= mean((testdf$ypred-testdf$y)^2)
+}
+
+
+plot(k_inverse, MSE, log="x", ylim= c(0,0.2), col= "green")
+abline(MSE_LS,0, lwd=2, lty= 2)
+```
+
+## Figure 3.19
+
+Generating data
+```{r}
+# clear workspace variables
+rm(list = ls()); 
+
+# generate random x values
+x=runif(100,min=-1,max=1)
+x=sort(x)  
+
+# Calculate real y values
+yreal=2+3*x+(50*x^3)
+
+# calculate y based on function + random noise 
+randnoise=rnorm(100,mean=0,sd=5)
+y=2+3*x+(50*x^3)+randnoise
+
+
+# knn with k =1 --------------------
+x1= seq(-1,1,0.01)
+y1= integer(length(x1))
+k=1
+k2=9
+
+for (j in 1:length(x1)){
+  dummy_x= x
+  dummy_y= y
+  neighbors =integer(k)
+  for (i in 1:k){
+    min_index= which.min(abs(dummy_x-x1[j]))
+    neighbors[i]= dummy_y[min_index]
+    dummy_x= dummy_x[-c(min_index)]
+    dummy_y= dummy_y[-c(min_index)]
+  }
+  y1[j]= mean(neighbors)
+  
+}
+
+# knn with k =9 --------------------
+y2= integer(length(x1))
+for (j in 1:length(x1)){
+  dummy_x= x
+  dummy_y= y
+  neighbors =integer(k2)
+  for (i in 1:k2){
+    min_index= which.min(abs(dummy_x-x1[j]))
+    neighbors[i]= dummy_y[min_index]
+    dummy_x= dummy_x[-c(min_index)]
+    dummy_y= dummy_y[-c(min_index)]
+  }
+  y2[j]= mean(neighbors)
+  
+}
+
+
+# PLOTS 
+# plotting the smooth fit
+curve(2+3*x+(50*x^3), from=-1, to=1)
+
+# adding lines for KNN = 1
+lines(x1,y1,col="blue")
+par(new=T)   # equivalent to hold on
+
+#adding lines for KNN= 0
+lines(x1,y2, col="red")
+
+```
+Using KNN algoritghm on nonlinear model
+```{r}
+
+lm.fit=lm(y~x)
+MSE_LS2= mean(residuals(lm.fit)^2)
+
+
+df= data.frame(x,y)
+# Creating training and test sets
+idxs <- sample(1:nrow(df),as.integer(0.7*nrow(df)))
+traindf <- df[idxs,]
+testdf <- df[-idxs,]
+
+neighbors= 9
+
+# initializing predictions to 0
+testdf$ypred= integer(nrow(testdf))
+
+# initializing more vectors
+k_inverse=integer(neighbors)
+MSE= integer(neighbors)
+
+for (k in 1:neighbors){
+for (i in 1:nrow(testdf)){
+  dummy_x= traindf$x
+  dummy_y= traindf$y
+  
+  neighbors =integer(k) #Initializing neighbors vector with 0s
+  
+  for (j in 1:k){
+    min_index= which.min(abs(dummy_x-testdf$x[i]))
+    neighbors[j]= dummy_y[min_index]
+    dummy_x= dummy_x[-c(min_index)]
+    dummy_y= dummy_y[-c(min_index)]
+  }
+  testdf$ypred[i]= mean(neighbors)
+  }
+k_inverse[k]= 1/k
+MSE[k]= mean((testdf$ypred-testdf$y)^2)
+}
+
+
+plot(k_inverse, MSE, log="x", ylim= c(0,90), col= "green")
+abline(MSE_LS2,0, lwd=2, lty= 2)
+```
