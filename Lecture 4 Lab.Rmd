@@ -244,22 +244,22 @@ k_inverse=integer(neighbors)
 MSE= integer(neighbors)
 
 for (k in 1:neighbors){
-for (i in 1:nrow(testdf)){
-  dummy_x= traindf$x
-  dummy_y= traindf$y
-  
-  neighbors =integer(k) #Initializing neighbors vector with 0s
-  
-  for (j in 1:k){
-    min_index= which.min(abs(dummy_x-testdf$x[i]))
-    neighbors[j]= dummy_y[min_index]
-    dummy_x= dummy_x[-c(min_index)]
-    dummy_y= dummy_y[-c(min_index)]
+  for (i in 1:nrow(testdf)){
+    dummy_x= traindf$x
+    dummy_y= traindf$y
+    
+    neighbors =integer(k) #Initializing neighbors vector with 0s
+    
+    for (j in 1:k){
+      min_index= which.min(abs(dummy_x-testdf$x[i]))
+      neighbors[j]= dummy_y[min_index]
+      dummy_x= dummy_x[-c(min_index)]
+      dummy_y= dummy_y[-c(min_index)]
+    }
+    testdf$ypred[i]= mean(neighbors)
   }
-  testdf$ypred[i]= mean(neighbors)
-  }
-k_inverse[k]= 1/k
-MSE[k]= mean((testdf$ypred-testdf$y)^2)
+  k_inverse[k]= 1/k
+  MSE[k]= mean((testdf$ypred-testdf$y)^2)
 }
 
 

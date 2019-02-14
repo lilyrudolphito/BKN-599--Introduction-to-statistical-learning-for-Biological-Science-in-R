@@ -1,0 +1,233 @@
+---
+title: "Lecture 5- BKN 599"
+author: "Nadir Nibras"
+date: "February 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Clear, close all
+```{r}
+# clear workspace variables
+rm(list = ls()); 
+# clear window (same as ctrl+L. )
+cat("\014")   
+# close all plots
+graphics.off() 
+```
+
+```{r}
+library(ISLR)
+attach(Smarket)
+```
+#### Smarket
+This data set consists of percentage returns for the S&P 500 stock index over 1, 250 days, from the beginning of 2001 until the end of 2005. For each date, we have recorded the percentage returns for each of the five previous trading days, Lag1 through Lag5. We have also recorded Volume (the number of shares traded on the previous day, in billions), Today (the percentage return on the date in question) and Direction (whether the market was Up or Down on this date).
+
+```{r}
+names(Smarket )
+dim(Smarket)
+summary (Smarket )
+```
+```{r}
+# cor(Smarket)
+cor(Smarket[,-9])
+```
+
+```{r}
+plot(Smarket$Volume)
+```
+
+Next, we will fit a logistic regression model in order to predict Direction using Lag1 through Lag5 and Volume. The glm() function fits generalized glm() linear models, a class of models that includes logistic regression. The syntax generalized of the glm() function is similar to that of lm(), except that we must pass in linear model the argument family=binomial in order to tell R to run a logistic regression rather than some other type of generalized linear model.
+
+```{r}
+glm.fit=glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume, data=Smarket ,family =binomial )
+summary (glm.fit )
+```
+
+The smallest p-value here is associated with Lag1. The negative coefficient for this predictor suggests that if the market had a positive return yesterday, then it is less likely to go up today. However, at a value of 0.15, the p-value is still relatively large, and so there is no clear evidence of a real association between Lag1 and Direction.
+
+We use the coef() function in order to access just the coefficients for this fitted model. We can also use the summary() function to access particular aspects of the fitted model, such as the p-values for the coefficients.
+
+```{r}
+coef(glm.fit)
+summary (glm.fit )$coef
+summary (glm.fit )$coef [,4]
+```
+The predict() function can be used to predict the probability that the
+market will go up, given values of the predictors. The type="response"
+option tells R to output probabilities of the form P(Y = 1|X), as opposed
+to other information such as the logit. If no data set is supplied to the
+predict() function, then the probabilities are computed for the training
+data that was used to fit the logistic regression model. Here we have printed
+only the first ten probabilities. We know that these values correspond to
+the probability of the market going up, rather than down, because the
+contrasts() function indicates that R has created a dummy variable with
+a 1 for Up.
+
+
+```{r}
+glm.probs =predict(glm.fit ,type ="response")
+glm.probs [1:10]
+contrasts(Smarket$Direction)
+```
+In order to make a prediction as to whether the market will go up or
+down on a particular day, we must convert these predicted probabilities
+into class labels, Up or Down. The following two commands create a vector
+of class predictions based on whether the predicted probability of a market
+increase is greater than or less than 0.5
+
+```{r}
+# Settin all values to "Down"
+glm.pred=rep ("Down" ,1250)
+glm.pred[glm.probs>.5]="Up"
+```
+
+Setting up confusion matrix for predictions
+```{r}
+table(glm.pred, Smarket$Direction)
+```
+Finding percentage of correct predictions
+```{r}
+mean(glm.pred== Smarket$Direction )
+```
+However, this is the percetntage of corret predictions for the training set, not the test set
+Let's create a training set
+
+```{r}
+# Boolean vector indicating which datapoints in smarket were before 2005
+train =(Smarket$Year <2005)
+# subsetting all points that were NOT before 2005
+Smarket.2005= Smarket[!train,]
+# Checking dimensions
+dim(Smarket.2005)
+# binary vector we are using to fit our logistic regression model
+Direction.2005= Direction[!train]
+```
+
+Fitting logistic regression model on train set and then checking the results on a test set that hasn't been used for creating our model
+```{r}
+# fitting model
+glm.fit=glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume ,
+data=Smarket ,family =binomial ,subset =train )
+# Predicting for test set
+glm.probs =predict (glm.fit ,Smarket.2005 , type="response")
+```
+
+Evaluating our predictions on the test set
+```{r}
+glm.pred=rep ("Down" ,252)
+glm.pred[glm.probs >.5]="Up"
+# Producing confusion matrix
+table(glm.pred ,Direction.2005)
+# Finding fraction of correct predictions
+mean(glm.pred== Direction.2005)
+# Finding fraction incorrect predictions
+mean(glm.pred!= Direction.2005)
+```
+SO we see the fraction of correct predictions is worse than what we would get from random guessing
+
+We recall that the logistic regression model had very underwhelming pvalues associated with all of the predictors, and that the smallest p-value, though not very small, corresponded to Lag1. Perhaps by removing the variables that appear not to be helpful in predicting Direction, we can
+obtain a more effective model. After all, using predictors that have no relationship with the response tends to cause a deterioration in the test error rate (since such predictors cause an increase in variance without a corresponding decrease in bias), and so removing such predictors may in turn yield an improvement
+
+Below we have refit the logistic regression using just Lag1 and Lag2, which seemed to have the highest predictive power in the original logistic regression model.
+
+```{r}
+glm.fit=glm(Direction~Lag1+Lag2 ,data=Smarket ,family =binomial ,
+subset =train)
+glm.probs =predict (glm.fit ,Smarket.2005 , type="response")
+glm.pred=rep ("Down" ,252)
+glm.pred[glm.probs >.5]="Up"
+table(glm.pred ,Direction.2005)
+# finding % of correct predictions
+mean(glm.pred== Direction.2005)
+106/(106+76)
+```
+56% of the daily movements have been correctly predicted
+
+However, on days when it predicts an increase in the market, it has a 58% accuracy rate
+
+Suppose that we want to predict the returns associated with particular values of Lag1 and Lag2. In particular, we want to predict Direction on a day when Lag1 and Lag2 equal 1.2 and 1.1, respectively, and on a day when they equal 1.5 and ???0.8. We do this using the predict() function.
+
+```{r}
+predict (glm.fit ,newdata =data.frame(Lag1=c(1.2 ,1.5) ,
+Lag2=c(1.1 , -0.8) ),type ="response")
+```
+###Lab 4.6.3 Linear Discriminant Analysis
+
+In R, we fit a LDA model using the lda() function, which is part of the MASS library
+
+```{r}
+library (MASS)
+lda.fit=lda(Direction~Lag1+Lag2 ,data=Smarket ,subset =train)
+lda.fit
+plot(lda.fit)
+```
+
+The LDA output indicates that pi1 = 0.492 and pi2 = 0.508; 
+in other words, 49.2% of the training observations correspond to days during which the market went down. It also provides the group means; these are the average of each predictor within each class, and are used by LDA as estimates of Mu_k. These suggest that there is a tendency for the previous 2 days' returns to be negative on days when the market increases, and a tendency for the previous days' returns to be positive on days when the market declines. 
+
+  The coefficients of linear discriminants output provides the linear combination of Lag1 and Lag2 that are used to form the LDA decision rule. In other words, these are the multipliers of the elements of X = x in (4.19). If ???0.642×Lag1???0.514×Lag2 is large, then the LDA classifier will predict a market increase, and if it is small, then the LDA classifier will predict a market decline.
+
+
+The predict() function returns a list with three elements. The first element, class, contains LDA's predictions about the movement of the market. The second element, posterior, is a matrix whose kth column contains the posterior probability that the corresponding observation belongs to the kth class, computed from (4.10). Finally, x contains the linear discriminants, described earlier.
+```{r}
+lda.pred=predict (lda.fit , Smarket.2005)
+names(lda.pred)
+```
+
+As we observed in Section 4.5, the LDA and logistic regression predictions are almost identical.
+```{r}
+lda.class =lda.pred$class
+table(lda.class ,Direction.2005)
+```
+Applying a 50% threshold to the posterior probabilities allows us to recreate the predictions contained in lda.pred$class.
+```{r}
+# Actual no
+sum(lda.pred$posterior [ ,1] >=.5)
+# Actual yes
+sum(lda.pred$posterior [,1]<.5)
+```
+suppose that we wish to predict a market decrease only if we are very certain that the market will indeed decrease on that day-say, if the posterior probability is at least 90%.
+```{r}
+sum(lda.pred$posterior [ ,1] >=.9)
+```
+
+###4.6.5 K-Nearest Neighbors
+
+Separating data into train and test sets
+
+```{r}
+library (class)
+# Creating training set
+train.X=cbind(Lag1 ,Lag2)[train ,]
+# creating test set
+test.X=cbind (Lag1 ,Lag2)[!train ,]
+# Binary vector used for training algorithm on train set
+train.Direction =Direction [train]
+```
+Training the knn network
+```{r}
+set.seed (1)
+knn.pred=knn (train.X, test.X,train.Direction ,k=1)
+table(knn.pred ,Direction.2005)
+```
+
+We set a random seed before we apply knn() because if several observations are tied as nearest neighbors, then R will randomly break the tie. Therefore, a seed must be set in order to ensure reproducibility of results.
+
+```{r}
+mean(knn.pred== Direction.2005)
+```
+
+Let's try increasing k to 3
+```{r}
+set.seed (1)
+knn.pred=knn (train.X, test.X,train.Direction ,k=3)
+table(knn.pred ,Direction.2005)
+```
+Checking improvement to see that the improvement is only slight
+```{r}
+mean(knn.pred== Direction.2005)
+```
+
