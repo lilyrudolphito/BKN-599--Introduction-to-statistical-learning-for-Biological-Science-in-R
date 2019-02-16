@@ -1,0 +1,196 @@
+---
+title: "Lecture 6- BKN 599"
+author: "Nadir Nibras"
+date: "February 14, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Clear, close all
+```{r}
+# clear workspace variables
+rm(list = ls()); 
+# clear window (same as ctrl+L. )
+cat("\014")   
+# close all plots
+graphics.off() 
+```
+
+### Lab 5.3.1
+We will be using the autos data set for this lab
+
+```{r}
+library(ISLR)
+set.seed (1)
+train=sample (392 ,196)
+```
+Using train data set to train our Linear Regression algorithm
+```{r}
+lm.fit =lm(mpg???horsepower ,data=Auto ,subset =train )
+```
+
+Calculating MSE on just the test data set- pay attention to the notation
+```{r}
+attach (Auto)
+mean((mpg -predict (lm.fit ,Auto))[-train ]^2)
+```
+Now trying quardatic and cubic regressions
+
+```{r}
+lm.fit2=lm(mpg???poly(horsepower ,2) ,data=Auto ,subset =train )
+mean((mpg -predict (lm.fit2 ,Auto))[-train ]^2)
+
+lm.fit3=lm(mpg???poly(horsepower ,3) ,data=Auto ,subset =train )
+mean((mpg -predict (lm.fit3 ,Auto))[-train ]^2)
+```
+Note that the quadratic fit significantly reduces the MSE
+
+#### Trying the same thing with a different training-set and testing-set combination
+
+```{r}
+set.seed (2)
+train=sample (392 ,196)
+lm.fit =lm(mpg???horsepower ,subset =train)
+mean((mpg -predict (lm.fit ,Auto))[-train ]^2)
+```
+
+```{r}
+lm.fit2=lm(mpg???poly(horsepower ,2) ,data=Auto ,subset =train )
+mean((mpg -predict (lm.fit2 ,Auto))[-train ]^2)
+```
+
+```{r}
+lm.fit3=lm(mpg???poly(horsepower ,3) ,data=Auto ,subset =train )
+mean((mpg -predict (lm.fit3 ,Auto))[-train ]^2)
+```
+
+### 5.3.2 Leave-One-Out Cross-Validation
+
+The LOOCV estimate can be automatically computed for any generalized linear model using the glm() and cv.glm() function
+
+Note that glm function without the "binomial" argument simply does linear regression (instead of 
+logistic regression)
+
+```{r}
+lm.fit=lm(mpg???horsepower ,data=Auto)
+coef(lm.fit)
+
+glm.fit=glm(mpg???horsepower ,data=Auto)
+coef(glm.fit)
+```
+we will perform linear regression using the glm() function rather than the lm() function because
+the latter can be used together with cv.glm(). The cv.glm() function is part of the boot library.
+
+```{r}
+library (boot)
+glm.fit=glm(mpg???horsepower ,data=Auto)
+cv.err =cv.glm(Auto ,glm.fit)
+cv.err$delta
+```
+The two numbers in the delta vector contain the cross-validation results.
+The first is the standard k-fold CV estimate, as in (5.3). The second is a biascorrected version.
+
+Running a loop to see cross-validation results for polynomial fits of different degrees
+```{r}
+cv.error=rep (0,5)
+for (i in 1:5){
+  glm.fit=glm(mpg???poly(horsepower ,i),data=Auto)
+  # automatically does LOOCV unless k is specified for kfold crossvalidation
+  cv.error[i]=cv.glm (Auto ,glm.fit)$delta [1]
+}
+cv.error
+```
+
+### 5.3.3 k-Fold Cross-Validation
+
+
+The cv.glm() function can also be used to implement k-fold CV. Below we use k = 10
+```{r}
+set.seed (17)
+cv.error.10= rep (0 ,10)
+for (i in 1:10) {
+glm.fit=glm(mpg???poly(horsepower ,i),data=Auto)
+cv.error.10[i]=cv.glm (Auto ,glm.fit ,K=10) $delta [1]
+}
+cv.error.10
+```
+
+Notice that the computation time is much shorter than that of LOOCV
+
+### 5.3.4 The Bootstrap
+
+To illustrate the use of the bootstrap on this data, we must first create a function, alpha.fn(), which takes as input the (X, Y) data as well as a vector indicating which observations should be used to estimate ??. The function then outputs the estimate for ?? based on the selected observations. 
+
+```{r}
+alpha.fn=function (data ,index){
+X=data$X [index]
+Y=data$Y [index]
+return ((var(Y)-cov (X,Y))/(var(X)+var(Y) -2* cov(X,Y)))
+}
+```
+
+This function returns, or outputs, an estimate for ?? based on applying (5.7) to the observations indexed by the argument index. For instance, the following command tells R to estimate ?? using all 100 observations.
+
+```{r}
+alpha.fn(Portfolio ,1:100)
+```
+
+next command uses the sample() function to randomly select 100 observations from the range 1 to 100, with replacement. This is equivalent to constructing a new bootstrap data set and recomputing ^?? based on the new data set.
+```{r}
+set.seed (1)
+alpha.fn(Portfolio ,sample (100 ,100 , replace =T))
+```
+
+We can implement a bootstrap analysis by performing this command many times, recording all of the corresponding estimates for ??, and computing the resulting standard deviation. However, the boot() function automates this approach. Below we produce R = 1, 000 bootstrap estimates for ??.
+```{r}
+boot(Portfolio ,alpha.fn,R=1000)
+```
+### Estimating the Accuracy of a Linear Regression Model
+
+Using linear regression function we learned before to come up with coefficients for intercept and slope
+```{r}
+boot.fn=function (data ,index )
+return (coef(lm(mpg???horsepower ,data=data ,subset =index)))
+# Note that we do not need the { and } at the beginning and end of the function because it is only one line long
+boot.fn(Auto ,1:392)
+```
+
+The boot.fn() function can also be used in order to create bootstrap estimates for the intercept and slope terms by randomly sampling from among the observations with replacement.
+
+```{r}
+set.seed (1)
+boot.fn(Auto ,sample (392 ,392 , replace =T))
+# repeating same thing but we results will be differnt as sample randomizes it
+boot.fn(Auto ,sample (392 ,392 , replace =T))
+```
+
+Next, we use the boot() function to compute the standard errors of 1,000 bootstrap estimates for the intercept and slope terms.
+
+```{r}
+boot(Auto ,boot.fn ,1000)
+```
+This indicates that the bootstrap estimate for SE( ^ ??0) is 0.86, and that the bootstrap estimate for SE( ^ ??1) is 0.0074. 
+
+As discussed in Section 3.1.2, standard formulas can be used to compute the standard errors for the regression coefficients in a linear model. These can be obtained using the summary() function.
+
+```{r}
+summary (lm(mpg???horsepower ,data=Auto))$coef
+```
+
+
+
+Below we compute the bootstrap standard error estimates and the standard linear regression estimates that result from fitting the quadratic model to the data. Since this model provides a good fit to the data (Figure 3.8), there is now a better correspondence between the bootstrap estimates and the standard estimates of SE( ^ ??0), SE( ^ ??1) and SE( ^ ??2)
+
+```{r}
+
+boot.fn=function (data ,index )
+coefficients(lm(mpg???horsepower +I( horsepower ^2) ,data=data ,
+subset =index))
+
+
+set.seed (1)
+boot(Auto ,boot.fn ,1000)
+```
+
