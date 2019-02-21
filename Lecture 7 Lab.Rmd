@@ -1,0 +1,187 @@
+---
+title: "Lecture 7- BKN 599"
+author: "Nadir Nibras"
+date: "February 21, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Clear, close all
+```{r}
+# clear workspace variables
+rm(list = ls()); 
+# clear window (same as ctrl+L. )
+cat("\014")   
+# close all plots
+graphics.off() 
+
+```
+
+### Lab 10.4 PCA
+```{r}
+# exctact row names from data.frame
+states =row.names(USArrests ) 
+states
+
+names(USArrests)
+
+# Find mean across columns
+apply(USArrests , 2, mean)
+
+# Find variance accross columns
+apply(USArrests , 2, var)
+# Differences in variancces show important of standardization before PCA
+
+```
+Performing PCA
+```{r}
+pr.out =prcomp (USArrests , scale =TRUE)
+```
+By default, the prcomp() function centers the variables to have mean zero. By using the option scale=TRUE, we scale the variables to have standard deviation one
+
+
+Investigate the means and the scaling factors used
+```{r}
+pr.out$center
+pr.out$scale
+# note that pr.out$sdev is the standard dev of the principal components
+pr.out$sdev
+```
+The rotation matrix provides the principal component loadings; each column of pr.out$rotation contains the corresponding principal component loading vector
+The matrix of variable loadings (i.e., a matrix whose columns contain the eigenvectors). 
+
+Note: This function names it the rotation matrix, because when we matrix-multiply the X matrix by pr.out$rotation, it gives us the coordinates of the data in the rotated coordinate system. These coordinates are the principal component scores
+
+```{r}
+pr.out$rotation
+```
+For the output, the kth column is the kth principal component score vector
+
+```{r}
+dim(pr.out$x )
+
+biplot (pr.out , scale =0)
+# The scale=0 argument to biplot() ensures that the arrows are scaled to biplot() represent the loadings; other values for scale give slightly different biplots with different interpretations. 
+```
+
+Trying to reproduce firgure 10.1
+```{r}
+pr.out$rotation=-pr.out$rotation
+pr.out$x=-pr.out$x
+biplot (pr.out , scale =0)
+```
+The variance of each PCA can be obtained by:
+```{r}
+pr.var =pr.out$sdev ^2
+pr.var
+```
+Total percentage of variance by each PC:
+```{r}
+pve=100*pr.var/sum(pr.var )
+pve
+```
+Plotting the above results
+```{r}
+plot(pve, xlab=" Principal Component ", ylab=" Proportion of Variance Explained ", ylim=c(0,100) ,type='l')
+```
+
+Plotting cumulative variance explained
+```{r}
+plot(cumsum (pve ), xlab=" Principal Component ", ylab ="
+Cumulative Proportion of Variance Explained ", ylim=c(0,100) ,type='l')
+```
+## Lab 10.5.1 :K-means clustering
+
+Generating 2 clusters
+```{r}
+set.seed (2)
+# Generating 50X2 matrix of random numbers
+x=matrix (rnorm (50*2) , ncol =2)
+# Separating first 25 values to create a separate cluster
+x[1:25 ,1]=x[1:25 ,1]+3
+x[1:25 ,2]=x[1:25 ,2] -4
+```
+Kmeans clustering with k =2
+```{r}
+km.out =kmeans (x,2, nstart =20)
+# Cluster assignment
+km.out$cluster
+
+```
+
+Plotting clusters
+```{r}
+plot(x, col =(km.out$cluster +1) , main="K-Means Clustering Results with K=2", xlab ="", ylab="", pch =20, cex =2)
+
+```
+for real data, in general we do not know the true number of clusters.
+Trying with k =3 
+
+```{r}
+set.seed (4)
+km.out =kmeans (x,3, nstart =20)
+km.out
+```
+
+The kmeans() function has an nstart option that attempts multiple initial configurations and reports on the best one. For example, adding nstart=25 will generate 25 initial configurations. This approach is often recommended.
+```{r}
+set.seed (3)
+km.out =kmeans (x,3, nstart =1)
+km.out$tot.withinss
+km.out =kmeans (x,3, nstart =20)
+km.out$tot.withinss
+```
+km.out$tot.withinss is the total within-cluster sum of squares, which we seek to minimize by performing K-means clustering
+
+### 10.5.2
+
+The hclust() function implements hierarchical clustericutree (hc.single , 2)ng in R
+The dist() function is used dist() to compute the 50 × 50 inter-observation Euclidean distance matrix
+
+Hierarchical clustering using complete, average or single linkage
+```{r}
+hc.complete =hclust (dist(x), method ="complete")
+hc.average =hclust (dist(x), method ="average")
+hc.single =hclust (dist(x), method ="single")
+```
+
+Plotting dendogram
+```{r}
+# plotting 3 graphs next to eachother
+par(mfrow =c(1,3)) 
+plot(hc.complete ,main =" Complete Linkage ", xlab="", sub ="", cex =.9)
+plot(hc.average , main =" Average Linkage ", xlab="", sub ="", cex =.9)
+plot(hc.single, main=" Single Linkage ", xlab="", sub ="", cex =.9)
+```
+
+seeing predictions
+```{r}
+cutree (hc.complete , 2)
+cutree (hc.average , 2)
+cutree (hc.single , 2)
+```
+
+Trying to find single linkage using 4 clusters
+```{r}
+cutree (hc.single , 4)
+```
+
+To scale the variables before performing hierarchical clustering of the observations, we use the scale() function:
+```{r}
+xsc=scale (x)
+plot(hclust (dist(xsc), method ="complete"), main =" Hierarchical Clustering with Scaled Features ")
+```
+
+
+
+
+
+```{r}
+x=matrix (rnorm (30*3) , ncol =3) #ncol
+dd=as.dist(1- cor(t(x)))
+plot(hclust (dd, method ="complete"), main=" Complete Linkage with Correlation -Based Distance ", xlab="", sub ="")
+```
+
