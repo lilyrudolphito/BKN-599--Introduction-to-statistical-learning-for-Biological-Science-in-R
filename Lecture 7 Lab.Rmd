@@ -80,7 +80,7 @@ pr.var
 ```
 Total percentage of variance by each PC:
 ```{r}
-pve=100*pr.var/sum(pr.var )
+pve=100*pr.var/sum(pr.var)
 pve
 ```
 Plotting the above results
@@ -184,4 +184,58 @@ x=matrix (rnorm (30*3) , ncol =3) #ncol
 dd=as.dist(1- cor(t(x)))
 plot(hclust (dd, method ="complete"), main=" Complete Linkage with Correlation -Based Distance ", xlab="", sub ="")
 ```
+### Lab 10.6.1
+
+
+NCI60 cancer cell line microarray data, which consists of 6,830 gene expression measurements on 64 cancer cell lines.
+```{r}
+library (ISLR)
+
+nci.labs=NCI60$labs
+nci.data=NCI60$data
+```
+Checking dimensions
+```{r}
+dim(nci.data)
+```
+Examining cancer types
+```{r}
+nci.labs [1:4]
+table(nci.labs)
+```
+Starting OCA
+```{r}
+pr.out =prcomp (nci.data , scale=TRUE)
+```
+
+Assign color corresponding to different cancer type
+```{r}
+Cols=function (vec ){
+  cols=rainbow (length (unique (vec )))
+  return (cols[as.numeric (as.factor (vec))])
+  }
+```
+Plotting PCs
+```{r}
+par(mfrow =c(1,2))
+plot(pr.out$x[,1:2], col =Cols(nci.labs), pch =19,
+xlab ="Z1",ylab="Z2")
+plot(pr.out$x[,c(1,3) ], col =Cols(nci.labs), pch =19,
+xlab ="Z1",ylab="Z3")
+```
+
+```{r}
+summary (pr.out)
+plot(pr.out)
+```
+Plotting the scree plots
+```{r}
+pve =100* pr.out$sdev ^2/ sum(pr.out$sdev ^2)
+par(mfrow =c(1,2))
+plot(pve , type ="o", ylab="PVE ", xlab=" Principal Component ",
+col =" blue")
+plot(cumsum (pve ), type="o", ylab =" Cumulative PVE", xlab="
+Principal Component ", col =" brown3 ")
+```
+
 
