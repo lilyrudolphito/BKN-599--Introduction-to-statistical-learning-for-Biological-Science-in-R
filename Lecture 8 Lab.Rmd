@@ -1,0 +1,156 @@
+---
+title: "Lab 8"
+author: "Nadir Nibras"
+date: "February 28, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Lab 10.5.1 :K-means clustering
+
+Generating 2 clusters
+```{r}
+set.seed (2)
+# Generating 50X2 matrix of random numbers
+x=matrix (rnorm (50*2) , ncol =2)
+# Separating first 25 values to create a separate cluster
+x[1:25 ,1]=x[1:25 ,1]+3
+x[1:25 ,2]=x[1:25 ,2] -4
+
+plot(x[,1],x[,2])
+```
+Kmeans clustering with k =2
+```{r}
+km.out =kmeans (x,2, nstart =20)
+# Cluster assignment
+km.out$cluster
+
+```
+
+Plotting clusters
+```{r}
+plot(x, col =(km.out$cluster +1) , main="K-Means Clustering Results with K=2", xlab ="", ylab="", pch =20, cex =2)
+
+```
+for real data, in general we do not know the true number of clusters.
+Trying with k =3 
+
+```{r}
+set.seed (4)
+km.out =kmeans (x,3, nstart =20)
+km.out
+```
+
+The kmeans() function has an nstart option that attempts multiple initial configurations and reports on the best one. For example, adding nstart=25 will generate 25 initial configurations. This approach is often recommended.
+```{r}
+set.seed (3)
+km.out =kmeans (x,3, nstart =1)
+km.out$tot.withinss
+km.out =kmeans (x,3, nstart =20)
+km.out$tot.withinss
+```
+km.out$tot.withinss is the total within-cluster sum of squares, which we seek to minimize by performing K-means clustering
+
+### 10.5.2 Hierarchical
+
+The hclust() function implements hierarchical clustericutree (hc.single , 2)ng in R
+The dist() function is used dist() to compute the 50 × 50 inter-observation Euclidean distance matrix
+
+Hierarchical clustering using complete, average or single linkage
+```{r}
+hc.complete =hclust (dist(x), method ="complete")
+hc.average =hclust (dist(x), method ="average")
+hc.single =hclust (dist(x), method ="single")
+```
+
+Plotting dendogram
+```{r}
+# plotting 3 graphs next to eachother
+par(mfrow =c(1,3)) 
+plot(hc.complete ,main =" Complete Linkage ", xlab="", sub ="", cex =.9)
+plot(hc.average , main =" Average Linkage ", xlab="", sub ="", cex =.9)
+plot(hc.single, main=" Single Linkage ", xlab="", sub ="", cex =.9)
+```
+
+seeing predictions
+```{r}
+cutree (hc.complete , 2)
+cutree (hc.average , 2)
+cutree (hc.single , 2)
+```
+
+Trying to find single linkage using 4 clusters
+```{r}
+cutree (hc.single , 4)
+```
+
+To scale the variables before performing hierarchical clustering of the observations, we use the scale() function:
+```{r}
+xsc=scale (x)
+plot(hclust (dist(xsc), method ="complete"), main =" Hierarchical Clustering with Scaled Features ")
+```
+
+
+
+
+```{r}
+x=matrix (rnorm (30*3) , ncol =3) #ncol
+dd=as.dist(1- cor(t(x)))
+plot(hclust (dd, method ="complete"), main=" Complete Linkage with Correlation -Based Distance ", xlab="", sub ="")
+```
+### Lab 10.6.1
+
+
+NCI60 cancer cell line microarray data, which consists of 6,830 gene expression measurements on 64 cancer cell lines.
+```{r}
+library (ISLR)
+
+nci.labs=NCI60$labs
+nci.data=NCI60$data
+```
+Checking dimensions
+```{r}
+dim(nci.data)
+```
+Examining cancer types
+```{r}
+nci.labs [1:4]
+table(nci.labs)
+```
+Starting OCA
+```{r}
+pr.out =prcomp (nci.data , scale=TRUE)
+```
+
+Assign color corresponding to different cancer type
+```{r}
+Cols=function (vec ){
+  cols=rainbow (length (unique (vec )))
+  return (cols[as.numeric (as.factor (vec))])
+  }
+```
+Plotting PCs
+```{r}
+par(mfrow =c(1,2))
+plot(pr.out$x[,1:2], col =Cols(nci.labs), pch =19,
+xlab ="Z1",ylab="Z2")
+plot(pr.out$x[,c(1,3) ], col =Cols(nci.labs), pch =19,
+xlab ="Z1",ylab="Z3")
+```
+
+```{r}
+summary (pr.out)
+plot(pr.out)
+```
+Plotting the scree plots
+```{r}
+pve =100* pr.out$sdev ^2/ sum(pr.out$sdev ^2)
+par(mfrow =c(1,2))
+plot(pve , type ="o", ylab="PVE ", xlab=" Principal Component ",
+col =" blue")
+plot(cumsum (pve ), type="o", ylab =" Cumulative PVE", xlab="
+Principal Component ", col =" brown3 ")
+```
