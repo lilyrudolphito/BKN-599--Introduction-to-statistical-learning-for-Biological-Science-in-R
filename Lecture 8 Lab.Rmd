@@ -94,8 +94,6 @@ plot(hclust (dist(xsc), method ="complete"), main =" Hierarchical Clustering wit
 ```
 
 
-
-
 ```{r}
 x=matrix (rnorm (30*3) , ncol =3) #ncol
 dd=as.dist(1- cor(t(x)))
